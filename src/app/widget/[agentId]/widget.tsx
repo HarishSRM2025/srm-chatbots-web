@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, Send } from "lucide-react";
 import { api, type Message } from "@/lib/api";
 import { MessageContent } from "@/components/conversations/message-content";
+import { SuggestedQuestions } from "@/components/conversations/suggested-questions";
+
 type Session = {
   predefined_questions?: string[];
   session_token: string;
@@ -127,19 +129,8 @@ export default function Widget({ agentId }: { agentId: string }) {
           <div ref={end} />
         </div>
         {session && (
-          <div className="suggested-questions" aria-label="Suggested questions">
-            {(session.predefined_questions || []).map((question, index) => (
-              <button
-                type="button"
-                className="secondary"
-                key={index}
-                disabled={busy}
-                onClick={(e) => void send(e, question)}
-              >
-                {question}
-              </button>
-            ))}
-          </div>
+          <SuggestedQuestions questions={session.predefined_questions || []} busy={busy}
+            onSelect={(event, question) => void send(event, question)} />
         )}
         {session && (
           <form className="composer" onSubmit={send}>

@@ -6,6 +6,7 @@ import { formatDate as date } from "@/lib/format";
 import { ProcessingIndicator } from "@/components/conversations/processing-indicator";
 import { PageHeading } from "@/components/dashboard/page-heading";
 import { MessageContent } from "./message-content";
+import { SuggestedQuestions } from "./suggested-questions";
 export function ConversationsSection() {
   const { agents, conversations } = useWorkspace();
   const {
@@ -107,22 +108,9 @@ export function ConversationsSection() {
             )}
             <div ref={end} />
           </div>
-          <div className="suggested-questions" aria-label="Suggested questions">
-            {(
-              agents.find((a) => a.id === (active?.agent ?? Number(agentId)))
-                ?.predefined_questions || []
-            ).map((question, index) => (
-              <button
-                type="button"
-                className="secondary"
-                key={index}
-                disabled={busy}
-                onClick={(e) => void send(e, question)}
-              >
-                {question}
-              </button>
-            ))}
-          </div>
+          <SuggestedQuestions
+            questions={agents.find(a => a.id === (active?.agent ?? Number(agentId)))?.predefined_questions || []}
+            busy={busy} onSelect={(event, question) => void send(event, question)} />
           <form className="composer" onSubmit={send}>
             <textarea
               aria-label="Message"
