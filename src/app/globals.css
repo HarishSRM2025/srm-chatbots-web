@@ -743,3 +743,20 @@ td small {
 }
 .suggested-questions-toggle:hover { background: #eee7fa; }
 .suggested-questions-toggle:focus-visible { outline: 2px solid #8056c9; outline-offset: 1px; }
+
+.message > .answer-content { white-space: normal; }
+.answer-content p { margin: 0 0 12px; white-space: pre-line; }
+.answer-content p:last-child { margin-bottom: 0; }
+.answer-content strong { font-weight: 650; color: #392958; }
+.answer-content .answer-page-link {
+  display: block;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #e5dff0;
+  color: #6844a6;
+  font-size: 12px;
+  line-height: 1.6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}

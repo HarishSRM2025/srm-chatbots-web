@@ -31,15 +31,15 @@ for (const widget of [false, true]) {
       await expect(page.getByRole("button", { name: "New chat" })).toHaveCount(0);
     }
     await page.getByRole("button", { name: questions[0], exact: true }).click();
-    await expect(page.getByRole("link", { name: "Admissions page" })).toHaveAttribute("href", "https://example.edu/admissions");
+    await expect(page.getByRole("link", { name: "https://example.edu/admissions" })).toHaveAttribute("href", "https://example.edu/admissions");
     await page.getByRole("textbox", { name: "Message", exact: true }).fill("What documents should I bring?");
     await page.getByRole("button", { name: "Send message" }).click();
-    await expect(page.getByRole("link", { name: "Admissions page" })).toHaveCount(2);
+    await expect(page.getByRole("link", { name: "https://example.edu/admissions" })).toHaveCount(2);
     expect(sent).toEqual([questions[0], "What documents should I bring?"]);
     if (widget) {
       await page.reload();
       await expect(page.getByRole("textbox", { name: "Message", exact: true })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Admissions page" })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "https://example.edu/admissions" })).toHaveCount(0);
       await expect(page.getByText("What documents should I bring?", { exact: true })).toHaveCount(0);
       expect(await page.evaluate(() => sessionStorage.getItem("srm-widget-1"))).toBeNull();
     }
