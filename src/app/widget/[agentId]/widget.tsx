@@ -17,65 +17,43 @@ export default function Widget({ agentId }: { agentId: string }) {
     [error, setError] = useState("");
   const retry = useRef<{ content: string; key: string } | null>(null);
   const end = useRef<HTMLDivElement>(null);
-  const storageKey = `srm-widget-${agentId}`;
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   useEffect(() => {
-    let saved: Session | null = null;
-    try {
-      saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
-    } catch {}
-    if (saved && new Date(saved.expires_at) > new Date()) {
-      setSession(saved);
-      api<{ messages: Message[]; predefined_questions: string[] }>(
-        `chat/widget/conversations/${saved.conversation}/?agent_id=${agentId}`,
-        { headers: { "X-Widget-Session": saved.session_token } },
-      )
-        .then((d) => {
-          setMessages(d.messages);
-          setSession({
-            ...saved!,
-            predefined_questions: d.predefined_questions,
+    let cancelled = false;
+    setSession(null);
+    setMessages([]);
+    setDraft("");
+    setError("");
+    setBusy(true);
+    retry.current = null;
+    // Clear sessions stored by older widget versions; new chats live in memory only.
+    try { sessionStorage.removeItem(`srm-widget-${agentId}`); } catch {}
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const session = await api<Omit<Session, "conversation">>("chat/widget/sessions/", {
+            method: "POST",
+            body: JSON.stringify({ agent_id: agentId }),
           });
-        })
-        .catch((e) => {
-          setError(e.message);
-          setSession(null);
-          sessionStorage.removeItem(storageKey);
-        });
-    }
-  }, [agentId, storageKey]);
+          if (cancelled) return;
+          const conversation = await api<{ id: number }>("chat/widget/conversations/", {
+            method: "POST",
+            headers: { "X-Widget-Session": session.session_token },
+            body: JSON.stringify({ agent_id: agentId }),
+          });
+          if (!cancelled) setSession({ ...session, conversation: conversation.id });
+        } catch (error) {
+          if (!cancelled) setError((error as Error).message);
+        } finally {
+          if (!cancelled) setBusy(false);
+        }
+      })();
+    }, 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [agentId, connectionAttempt]);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
-  async function start() {
-    setBusy(true);
-    setError("");
-    try {
-      const s = await api<{
-        session_token: string;
-        expires_at: string;
-        predefined_questions: string[];
-      }>("chat/widget/sessions/", {
-        method: "POST",
-        body: JSON.stringify({ agent_id: agentId }),
-      });
-      const c = await api<{ id: number }>("chat/widget/conversations/", {
-        method: "POST",
-        headers: { "X-Widget-Session": s.session_token },
-        body: JSON.stringify({ agent_id: agentId }),
-      });
-      const next = { ...s, conversation: c.id };
-      setSession(next);
-      setMessages([]);
-      retry.current = null;
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {}
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   async function send(e: FormEvent, question?: string) {
     e.preventDefault();
     if (!session || !(question ?? draft).trim() || busy) return;
@@ -121,26 +99,11 @@ export default function Widget({ agentId }: { agentId: string }) {
             <Bot size={19} />
           </span>
           <strong>SRM Assistant</strong>
-          {session && (
-            <button
-              className="widget-actions"
-              disabled={busy}
-              onClick={() => {
-                setSession(null);
-                setMessages([]);
-                setDraft("");
-                setError("");
-                retry.current = null;
-                sessionStorage.removeItem(storageKey);
-              }}
-            >
-              New chat
-            </button>
-          )}
         </header>
         {error && (
           <div role="alert" className="alert error">
             {error}
+            {!session && !busy && <button type="button" className="secondary" onClick={() => setConnectionAttempt(attempt => attempt + 1)}>Retry connection</button>}
           </div>
         )}
         <div className="messages" aria-live="polite">
@@ -151,15 +114,7 @@ export default function Widget({ agentId }: { agentId: string }) {
               </span>
               <h3>Hello! How can I help?</h3>
               <p>Ask a question and I’ll help you find an answer.</p>
-              {!session && (
-                <button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => void start()}
-                >
-                  {busy ? "Connecting…" : "Start a conversation"}
-                </button>
-              )}
+
             </div>
           )}
           {messages.map((m) => (
