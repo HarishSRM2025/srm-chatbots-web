@@ -114,7 +114,18 @@ function useWorkspaceState() {
   async function saveAgent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await action(async () => {
-      await api(`agents/${editor?.id ? editor.id + "/" : ""}`, {
+      const origins = [...new Set((editor?.allowed_origins || [])
+        .flatMap(origin => origin.split(","))
+        .map(origin => origin.trim()).filter(Boolean)
+        .map(origin => {
+          const url = new URL(origin);
+          if (!["https:", "http:"].includes(url.protocol) || url.username || url.password ||
+              (url.pathname && url.pathname !== "/") || url.search || url.hash) {
+            throw new Error("Enter website origins without paths, queries, or credentials.");
+          }
+          return url.origin;
+        }))];
+      const saved = await api<Agent>(`agents/${editor?.id ? editor.id + "/" : ""}`, {
         method: editor?.id ? "PATCH" : "POST",
         body: JSON.stringify({
           name: editor?.name,
@@ -122,11 +133,19 @@ function useWorkspaceState() {
           system_prompt: editor?.system_prompt,
           status: editor?.status,
           is_public: editor?.is_public,
+          allowed_origins: origins,
           predefined_questions: (editor?.predefined_questions || [])
             .map((q) => q.trim())
             .filter(Boolean),
         }),
       });
+      // Older API deployments silently ignore unknown serializer fields.
+      setEditor(saved.allowed_origins ? saved : { ...editor, id: saved.id });
+      if (!Array.isArray(saved.allowed_origins) ||
+          saved.allowed_origins.length !== origins.length ||
+          origins.some(origin => !saved.allowed_origins.includes(origin))) {
+        throw new Error("The API did not save this agent?s origins. Deploy the updated backend, then save again.");
+      }
       setEditor(null);
       setNotice("Agent saved.");
       await reload();

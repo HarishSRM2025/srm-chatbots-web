@@ -88,6 +88,19 @@ export function AgentDialog() {
               <option value="inactive">Inactive</option>
             </select>
           </label>
+          <label>
+            Allowed widget origins (one per line)
+            <textarea
+              rows={3}
+              value={(editor.allowed_origins || []).join("\n")}
+              onChange={(e) => setEditor({ ...editor, allowed_origins: e.target.value.split("\n") })}
+              placeholder="Enter a website origin, including https://"
+            />
+            <small>Enter the origin of the widget URL, including its port for localhost. For an iframe, use its src origin, not the parent website. Each agent has its own list.</small>
+          </label>
+          <button type="button" className="secondary" onClick={() => setEditor({ ...editor, allowed_origins: [...new Set([...(editor.allowed_origins || []).filter(Boolean), window.location.origin])] })}>
+            Add this website
+          </button>
           <label className="checkbox">
             <input
               type="checkbox"

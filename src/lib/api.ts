@@ -66,6 +66,7 @@ export type Agent = {
   model_name: string;
   status: string;
   is_public: boolean;
+  allowed_origins: string[];
   predefined_questions: string[];
   created_at: string;
 };

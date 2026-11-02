@@ -70,9 +70,9 @@ export function IntegrationsSection() {
               in its settings.
             </li>
             <li>
-              In Django admin, add <strong>{origin}</strong> to the agent’s{" "}
-              <code>allowed_origins</code>. The current API does not expose this
-              field.
+              In Agents ? Edit agent, add <strong>{origin}</strong> to
+              Allowed widget origins and save. This is separate from the API?s
+              CORS configuration.
             </li>
             <li>
               Use a publicly reachable HTTPS frontend URL when embedding on a
