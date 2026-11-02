@@ -17,6 +17,7 @@ export default function Widget({ agentId }: { agentId: string }) {
     [draft, setDraft] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(true);
   const retry = useRef<{ content: string; key: string } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const [connectionAttempt, setConnectionAttempt] = useState(0);
@@ -129,7 +130,7 @@ export default function Widget({ agentId }: { agentId: string }) {
           <div ref={end} />
         </div>
         {session && (
-          <SuggestedQuestions questions={session.predefined_questions || []} busy={busy}
+          <SuggestedQuestions expanded={suggestionsExpanded} onToggle={() => setSuggestionsExpanded(value => !value)} questions={session.predefined_questions || []} busy={busy}
             onSelect={(event, question) => void send(event, question)} />
         )}
         {session && (
@@ -139,7 +140,10 @@ export default function Widget({ agentId }: { agentId: string }) {
               maxLength={10000}
               placeholder="Type your question…"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                if (e.target.value.trim()) setSuggestionsExpanded(false);
+              }}
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&

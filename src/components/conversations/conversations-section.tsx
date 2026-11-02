@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { Bot, Plus, Send, Sparkles } from "lucide-react";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useConversation } from "@/hooks/use-conversation";
@@ -8,6 +9,7 @@ import { PageHeading } from "@/components/dashboard/page-heading";
 import { MessageContent } from "./message-content";
 import { SuggestedQuestions } from "./suggested-questions";
 export function ConversationsSection() {
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(true);
   const { agents, conversations } = useWorkspace();
   const {
     pendingMessage,
@@ -108,7 +110,7 @@ export function ConversationsSection() {
             )}
             <div ref={end} />
           </div>
-          <SuggestedQuestions
+          <SuggestedQuestions expanded={suggestionsExpanded} onToggle={() => setSuggestionsExpanded(value => !value)}
             questions={agents.find(a => a.id === (active?.agent ?? Number(agentId)))?.predefined_questions || []}
             busy={busy} onSelect={(event, question) => void send(event, question)} />
           <form className="composer" onSubmit={send}>
@@ -117,7 +119,10 @@ export function ConversationsSection() {
               placeholder="Ask your assistant a question…"
               value={draft}
               maxLength={10000}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                if (e.target.value.trim()) setSuggestionsExpanded(false);
+              }}
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&
