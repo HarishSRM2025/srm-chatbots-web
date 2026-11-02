@@ -9,7 +9,6 @@ export function useConversation() {
   const [active, setActive] = useState<Conversation | null>(null);
   const [agentId, setAgentId] = useState(params.get("agent") || "");
   const [draft, setDraft] = useState("");
-  const [citations, setCitations] = useState<string[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const sendLock = useRef(false);
@@ -40,24 +39,28 @@ export function useConversation() {
       setAgentId(params.get("agent") || "");
     }
     setDraft("");
-    setCitations([]);
     return () => {
       cancelled = true;
     };
   }, [params]);
 
-  async function send(e: FormEvent) {
+  async function send(e: FormEvent, question?: string) {
     e.preventDefault();
-    if (!draft.trim() || busy || historyLoading || sendLock.current) return;
+    if (
+      !(question ?? draft).trim() ||
+      busy ||
+      historyLoading ||
+      sendLock.current
+    )
+      return;
     if (!active && !agentId) {
       setError("Choose an active agent first.");
       return;
     }
-    const content = draft.trim();
+    const content = (question ?? draft).trim();
     sendLock.current = true;
     await action(async () => {
       setDraft("");
-      setCitations([]);
       setPendingMessage(content);
       let conversation = active;
       const previousIds = new Set(
@@ -90,9 +93,6 @@ export function useConversation() {
             result.assistant_message,
           ],
         });
-        setCitations([
-          ...new Set(result.sources.map((source) => source.title)),
-        ]);
         setPendingMessage(null);
       } catch (error) {
         // Inference can fail after Django has saved the user's message.
@@ -133,8 +133,6 @@ export function useConversation() {
     setAgentId,
     draft,
     setDraft,
-    citations,
-    setCitations,
     end,
     send,
     busy: busy || historyLoading,

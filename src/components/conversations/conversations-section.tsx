@@ -1,10 +1,11 @@
 "use client";
-import { Bot, BookOpen, Plus, Send, Sparkles } from "lucide-react";
+import { Bot, Plus, Send, Sparkles } from "lucide-react";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useConversation } from "@/hooks/use-conversation";
 import { formatDate as date } from "@/lib/format";
 import { ProcessingIndicator } from "@/components/conversations/processing-indicator";
 import { PageHeading } from "@/components/dashboard/page-heading";
+import { MessageContent } from "./message-content";
 export function ConversationsSection() {
   const { agents, conversations } = useWorkspace();
   const {
@@ -15,8 +16,6 @@ export function ConversationsSection() {
     setAgentId,
     draft,
     setDraft,
-    citations,
-    setCitations,
     end,
     send,
     busy,
@@ -32,7 +31,6 @@ export function ConversationsSection() {
             onClick={() => {
               setActive(null);
               setDraft("");
-              setCitations([]);
             }}
           >
             <Plus size={16} />
@@ -46,7 +44,6 @@ export function ConversationsSection() {
               onClick={() => {
                 setActive(c);
                 setAgentId(String(c.agent));
-                setCitations([]);
               }}
             >
               <strong>{c.title || "Untitled conversation"}</strong>
@@ -96,7 +93,7 @@ export function ConversationsSection() {
             {active?.messages.map((m) => (
               <div key={m.id} className={`message ${m.role}`}>
                 <small>{m.role === "user" ? "You" : active.agent_name}</small>
-                <div>{m.content}</div>
+                <MessageContent message={m} />
               </div>
             ))}
             {pendingMessage && (
@@ -108,13 +105,23 @@ export function ConversationsSection() {
                 <ProcessingIndicator />
               </>
             )}
-            {!!citations.length && (
-              <div className="citations">
-                <BookOpen size={14} />
-                Sources: {citations.join(", ")}
-              </div>
-            )}
             <div ref={end} />
+          </div>
+          <div className="suggested-questions" aria-label="Suggested questions">
+            {(
+              agents.find((a) => a.id === (active?.agent ?? Number(agentId)))
+                ?.predefined_questions || []
+            ).map((question, index) => (
+              <button
+                type="button"
+                className="secondary"
+                key={index}
+                disabled={busy}
+                onClick={(e) => void send(e, question)}
+              >
+                {question}
+              </button>
+            ))}
           </div>
           <form className="composer" onSubmit={send}>
             <textarea

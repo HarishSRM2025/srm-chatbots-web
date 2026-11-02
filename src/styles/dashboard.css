@@ -1889,3 +1889,22 @@
     padding: 0 8px;
   }
 }
+
+.suggested-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 20px;
+}
+.suggested-questions:empty {
+  display: none;
+}
+.suggested-questions button {
+  white-space: normal;
+  text-align: left;
+}
+.message a {
+  color: inherit;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}

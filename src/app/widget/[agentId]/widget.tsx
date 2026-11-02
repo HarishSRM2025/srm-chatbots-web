@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, Send, BookOpen } from "lucide-react";
+import { Bot, Send } from "lucide-react";
 import { api, type Message } from "@/lib/api";
+import { MessageContent } from "@/components/conversations/message-content";
 type Session = {
+  predefined_questions?: string[];
   session_token: string;
   expires_at: string;
   conversation: number;
@@ -12,8 +14,7 @@ export default function Widget({ agentId }: { agentId: string }) {
     [messages, setMessages] = useState<Message[]>([]),
     [draft, setDraft] = useState(""),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [sources, setSources] = useState<string[]>([]);
+    [error, setError] = useState("");
   const retry = useRef<{ content: string; key: string } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const storageKey = `srm-widget-${agentId}`;
@@ -24,11 +25,17 @@ export default function Widget({ agentId }: { agentId: string }) {
     } catch {}
     if (saved && new Date(saved.expires_at) > new Date()) {
       setSession(saved);
-      api<{ messages: Message[] }>(
+      api<{ messages: Message[]; predefined_questions: string[] }>(
         `chat/widget/conversations/${saved.conversation}/?agent_id=${agentId}`,
         { headers: { "X-Widget-Session": saved.session_token } },
       )
-        .then((d) => setMessages(d.messages))
+        .then((d) => {
+          setMessages(d.messages);
+          setSession({
+            ...saved!,
+            predefined_questions: d.predefined_questions,
+          });
+        })
         .catch((e) => {
           setError(e.message);
           setSession(null);
@@ -43,10 +50,14 @@ export default function Widget({ agentId }: { agentId: string }) {
     setBusy(true);
     setError("");
     try {
-      const s = await api<{ session_token: string; expires_at: string }>(
-        "chat/widget/sessions/",
-        { method: "POST", body: JSON.stringify({ agent_id: agentId }) },
-      );
+      const s = await api<{
+        session_token: string;
+        expires_at: string;
+        predefined_questions: string[];
+      }>("chat/widget/sessions/", {
+        method: "POST",
+        body: JSON.stringify({ agent_id: agentId }),
+      });
       const c = await api<{ id: number }>("chat/widget/conversations/", {
         method: "POST",
         headers: { "X-Widget-Session": s.session_token },
@@ -65,12 +76,12 @@ export default function Widget({ agentId }: { agentId: string }) {
       setBusy(false);
     }
   }
-  async function send(e: FormEvent) {
+  async function send(e: FormEvent, question?: string) {
     e.preventDefault();
-    if (!session || !draft.trim() || busy) return;
+    if (!session || !(question ?? draft).trim() || busy) return;
     setBusy(true);
     setError("");
-    const content = draft.trim();
+    const content = (question ?? draft).trim();
     if (retry.current?.content !== content)
       retry.current = { content, key: crypto.randomUUID() };
     try {
@@ -94,7 +105,6 @@ export default function Widget({ agentId }: { agentId: string }) {
         data.user_message,
         data.assistant_message,
       ]);
-      setSources([...new Set(data.sources.map((s) => s.title))]);
       setDraft("");
       retry.current = null;
     } catch (e) {
@@ -119,7 +129,6 @@ export default function Widget({ agentId }: { agentId: string }) {
                 setSession(null);
                 setMessages([]);
                 setDraft("");
-                setSources([]);
                 setError("");
                 retry.current = null;
                 sessionStorage.removeItem(storageKey);
@@ -156,18 +165,27 @@ export default function Widget({ agentId }: { agentId: string }) {
           {messages.map((m) => (
             <div key={m.id} className={`message ${m.role}`}>
               <small>{m.role === "user" ? "You" : "Assistant"}</small>
-              <div>{m.content}</div>
+              <MessageContent message={m} />
             </div>
           ))}
           {busy && <p className="muted">Please wait…</p>}
-          {!!sources.length && (
-            <div className="citations">
-              <BookOpen size={14} />
-              {sources.join(", ")}
-            </div>
-          )}
           <div ref={end} />
         </div>
+        {session && (
+          <div className="suggested-questions" aria-label="Suggested questions">
+            {(session.predefined_questions || []).map((question, index) => (
+              <button
+                type="button"
+                className="secondary"
+                key={index}
+                disabled={busy}
+                onClick={(e) => void send(e, question)}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        )}
         {session && (
           <form className="composer" onSubmit={send}>
             <textarea

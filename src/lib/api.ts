@@ -66,6 +66,7 @@ export type Agent = {
   model_name: string;
   status: string;
   is_public: boolean;
+  predefined_questions: string[];
   created_at: string;
 };
 export type Source = {
@@ -79,7 +80,9 @@ export type Source = {
   status: string;
   error_message: string;
 };
+export type Citation = { title: string; url?: string };
 export type Message = {
+  sources?: Citation[];
   id: number;
   role: string;
   content: string;

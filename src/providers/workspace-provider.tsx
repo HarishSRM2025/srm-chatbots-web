@@ -122,6 +122,9 @@ function useWorkspaceState() {
           system_prompt: editor?.system_prompt,
           status: editor?.status,
           is_public: editor?.is_public,
+          predefined_questions: (editor?.predefined_questions || [])
+            .map((q) => q.trim())
+            .filter(Boolean),
         }),
       });
       setEditor(null);

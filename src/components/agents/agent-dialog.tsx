@@ -65,6 +65,20 @@ export function AgentDialog() {
             />
           </label>
           <label>
+            Predefined questions (one per line, up to 20)
+            <textarea
+              rows={4}
+              value={(editor.predefined_questions || []).join("\n")}
+              onChange={(e) =>
+                setEditor({
+                  ...editor,
+                  predefined_questions: e.target.value.split("\n"),
+                })
+              }
+              placeholder="How do I apply?"
+            />
+          </label>
+          <label>
             Status
             <select
               value={editor.status}
